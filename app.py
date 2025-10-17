@@ -44,7 +44,7 @@ def generate_video():
     # Kald Gemini API
     try:
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/veo-2.0-generate-001:generateVideo?key={api_key}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/veo-002:generateVideo?key={api_key}",
             json=payload,
             headers={"Content-Type": "application/json"}
         )
