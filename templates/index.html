@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,6 +15,9 @@
   <p><strong>OBS:</strong> API-nøglen skal sættes som miljøvariabel på Render (GEMINI_API_KEY).</p>
 
   <textarea id="prompt" placeholder="Skriv din prompt..."></textarea>
+
+  <input type="file" id="imageInput" accept="image/png, image/jpeg" />
+
   <button onclick="generate()">Generér video</button>
 
   <div id="result"></div>
@@ -23,22 +25,51 @@
   <script>
     async function generate() {
       const prompt = document.getElementById("prompt").value.trim();
+      const imageInput = document.getElementById("imageInput");
       const resultBox = document.getElementById("result");
+
+      if (!prompt) {
+        alert("Skriv en prompt først.");
+        return;
+      }
+
+      if (imageInput.files.length === 0) {
+        alert("Vælg et billede.");
+        return;
+      }
+
       resultBox.innerHTML = "⏳ Genererer...";
 
-      const res = await fetch("/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
-      });
+      const file = imageInput.files[0];
+      const reader = new FileReader();
 
-      const data = await res.json();
+      reader.onload = async function () {
+        const base64Data = reader.result.split(",")[1]; // Fjern "data:image/..." præfikset
 
-      if (res.ok && data.video && data.video.uri) {
-        resultBox.innerHTML = `<p><strong>✅ Video klar:</strong></p><a href="${data.video.uri}" target="_blank">Se eller download video</a>`;
-      } else {
-        resultBox.innerHTML = `<pre>❌ Fejl: ${JSON.stringify(data, null, 2)}</pre>`;
-      }
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: prompt,
+            image: {
+              mime_type: file.type,
+              data: base64Data
+            }
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.video && data.video.uri) {
+          resultBox.innerHTML = `<p><strong>✅ Video klar:</strong></p><a href="${data.video.uri}" target="_blank">Se eller download video</a>`;
+        } else if (res.ok && data.output) {
+          resultBox.innerHTML = `<h3>Gemini Output:</h3><pre>${data.output}</pre>`;
+        } else {
+          resultBox.innerHTML = `<pre>❌ Fejl: ${JSON.stringify(data, null, 2)}</pre>`;
+        }
+      };
+
+      reader.readAsDataURL(file);
     }
   </script>
 </body>
