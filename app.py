@@ -2,18 +2,22 @@ from flask import Flask, request, jsonify, render_template
 import requests
 import os
 
-app = Flask(__name__)
+# Flask initialisering (templates mappe er eksplicit sat)
+app = Flask(__name__, template_folder="templates")
 
-# Forsidevisning
 @app.route("/")
 def index():
+    """Vis forsiden med uploadfeltet."""
     return render_template("index.html")
 
-# API-endpoint til video-generering
 @app.route("/generate", methods=["POST"])
 def generate_video():
+    """Kalder Gemini Veo API for at generere video baseret på prompt og evt. billede."""
     data = request.json
     api_key = os.getenv("GEMINI_API_KEY")
+
+    # Debug-linje for at se om API-nøglen bliver læst i Render
+    print("🔍 API KEY loaded?", bool(api_key))
 
     # Hent prompt og evt. billede
     prompt = data.get("prompt")
@@ -22,7 +26,7 @@ def generate_video():
     if not api_key or not prompt:
         return jsonify({"error": "Missing API key or prompt"}), 400
 
-    # Opsæt payload til Gemini Veo
+    # Opsæt payload til Gemini Veo API
     payload = {
         "prompt": prompt,
         "duration": "8s",
@@ -37,7 +41,7 @@ def generate_video():
             "data": image["data"]
         }
 
-    # Kald til Gemini Veo API
+    # Kald Gemini API
     try:
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/veo-2.0-generate-001:generateVideo?key={api_key}",
@@ -46,12 +50,17 @@ def generate_video():
         )
 
         if response.ok:
+            print("✅ Video generation succeeded")
             return jsonify(response.json())
         else:
+            print("❌ API returned error:", response.text)
             return jsonify({"error": response.text}), response.status_code
+
     except Exception as e:
+        print("🔥 Internal server error:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# Hvis du vil køre den lokalt
+
+# Lokal kørsel (bruges kun hvis du tester lokalt)
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
