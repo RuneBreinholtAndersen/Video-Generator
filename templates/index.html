@@ -16,59 +16,55 @@
 
   <textarea id="prompt" placeholder="Skriv din prompt..."></textarea>
 
-  <input type="file" id="imageInput" accept="image/png, image/jpeg" />
+  <input type="file" id="image" accept="image/png, image/jpeg" />
 
   <button onclick="generate()">Generér video</button>
 
   <div id="result"></div>
 
   <script>
-async function generate() {
-  const prompt = document.getElementById("prompt").value.trim();
-  const resultBox = document.getElementById("result");
-  const fileInput = document.getElementById("image");
+    async function generate() {
+      const prompt = document.getElementById("prompt").value.trim();
+      const resultBox = document.getElementById("result");
+      const fileInput = document.getElementById("image");
 
-  resultBox.innerHTML = "⏳ Genererer...";
+      resultBox.innerHTML = "⏳ Genererer...";
 
-  let imageData = null;
+      let imageData = null;
 
-  if (fileInput.files.length > 0) {
-    const file = fileInput.files[0];
-    const mimeType = file.type;
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const mimeType = file.type;
 
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Strip "data:image/png;base64," prefix
-        const raw = reader.result.split(",")[1];
-        resolve(raw);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const raw = reader.result.split(",")[1]; // strip "data:image/png;base64,"
+            resolve(raw);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-    imageData = {
-      mime_type: mimeType,
-      data: base64
-    };
-  }
+        imageData = {
+          mime_type: mimeType,
+          data: base64
+        };
+      }
 
-  const res = await fetch("/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, image: imageData })
-  });
+      const res = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, image: imageData })
+      });
 
-  const data = await res.json();
+      const data = await res.json();
 
-  if (res.ok && data.video && data.video.uri) {
-    resultBox.innerHTML = `<p><strong>✅ Video klar:</strong></p><a href="${data.video.uri}" target="_blank">Se eller download video</a>`;
-  } else {
-    resultBox.innerHTML = `<pre>❌ Fejl: ${JSON.stringify(data, null, 2)}</pre>`;
-  }
-}
-
-      reader.readAsDataURL(file);
+      if (res.ok && data.video && data.video.uri) {
+        resultBox.innerHTML = `<p><strong>✅ Video klar:</strong></p><a href="${data.video.uri}" target="_blank">Se eller download video</a>`;
+      } else {
+        resultBox.innerHTML = `<pre>❌ Fejl: ${JSON.stringify(data, null, 2)}</pre>`;
+      }
     }
   </script>
 </body>
