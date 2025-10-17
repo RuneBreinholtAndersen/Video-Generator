@@ -23,51 +23,50 @@
   <div id="result"></div>
 
   <script>
-    async function generate() {
-      const prompt = document.getElementById("prompt").value.trim();
-      const imageInput = document.getElementById("imageInput");
-      const resultBox = document.getElementById("result");
+async function generate() {
+  const prompt = document.getElementById("prompt").value.trim();
+  const resultBox = document.getElementById("result");
+  const fileInput = document.getElementById("image");
 
-      if (!prompt) {
-        alert("Skriv en prompt først.");
-        return;
-      }
+  resultBox.innerHTML = "⏳ Genererer...";
 
-      if (imageInput.files.length === 0) {
-        alert("Vælg et billede.");
-        return;
-      }
+  let imageData = null;
 
-      resultBox.innerHTML = "⏳ Genererer...";
+  if (fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const mimeType = file.type;
 
-      const file = imageInput.files[0];
+    const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-
-      reader.onload = async function () {
-        const base64Data = reader.result.split(",")[1]; // Fjern "data:image/..." præfikset
-
-        const res = await fetch("/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: prompt,
-            image: {
-              mime_type: file.type,
-              data: base64Data
-            }
-          })
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.video && data.video.uri) {
-          resultBox.innerHTML = `<p><strong>✅ Video klar:</strong></p><a href="${data.video.uri}" target="_blank">Se eller download video</a>`;
-        } else if (res.ok && data.output) {
-          resultBox.innerHTML = `<h3>Gemini Output:</h3><pre>${data.output}</pre>`;
-        } else {
-          resultBox.innerHTML = `<pre>❌ Fejl: ${JSON.stringify(data, null, 2)}</pre>`;
-        }
+      reader.onload = () => {
+        // Strip "data:image/png;base64," prefix
+        const raw = reader.result.split(",")[1];
+        resolve(raw);
       };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    imageData = {
+      mime_type: mimeType,
+      data: base64
+    };
+  }
+
+  const res = await fetch("/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, image: imageData })
+  });
+
+  const data = await res.json();
+
+  if (res.ok && data.video && data.video.uri) {
+    resultBox.innerHTML = `<p><strong>✅ Video klar:</strong></p><a href="${data.video.uri}" target="_blank">Se eller download video</a>`;
+  } else {
+    resultBox.innerHTML = `<pre>❌ Fejl: ${JSON.stringify(data, null, 2)}</pre>`;
+  }
+}
 
       reader.readAsDataURL(file);
     }
