@@ -43,11 +43,17 @@ def generate_video():
 
     # Kald Gemini API
     try:
+        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/veo:generateVideo?key={api_key}"
+        print("🔗 Calling:", endpoint)
+
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/veo-002:generateVideo?key={api_key}",
+            endpoint,
             json=payload,
             headers={"Content-Type": "application/json"}
         )
+
+        print("📡 Status:", response.status_code)
+        print("📩 Response text:", response.text[:500])
 
         if response.ok:
             print("✅ Video generation succeeded")
